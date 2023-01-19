@@ -1,0 +1,29 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@onflow/fcl": "^1.3.2"
+  },
+  "name": "bal-flow-plugin",
+  "description": "",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TIHBS/bal-flow-plugin.git"
+  },
+  "keywords": [
+    "BAL",
+    "blockchain",
+    "integration"
+  ],
+  "author": "Akshay Patel",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TIHBS/bal-flow-plugin/issues"
+  },
+  "homepage": "https://github.com/TIHBS/bal-flow-plugin#readme"
+}
