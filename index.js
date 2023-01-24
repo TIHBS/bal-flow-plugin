@@ -2,7 +2,7 @@ import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-
 dotenv.config();
 import express from "express";
 import bodyParser from "body-parser";
-import { invoke } from "./api.js";
+import { invoke, queryFunctionInvocations, queryEvents } from "./api.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -39,7 +39,37 @@ app.post("/invoke", async (req, res, next) => {
 
 app.post("/query", async (req, res, next) => {
   try {
-    res.json([]);
+    const data = req.body;
+    const smartContractPath = data["smartContractPath"];
+    const functionIdentifier = data["functionIdentifier"];
+    const eventIdentifier = data["eventIdentifier"];
+
+    const filter = data["filter"];
+    const timeframe = data["timeFrame"];
+    const parameters = data["parameters"];
+
+    let result;
+    if (functionIdentifier && functionIdentifier !== "") {
+      // function invocation query
+
+      result = await queryFunctionInvocations(
+        functionIdentifier,
+        filter,
+        timeframe,
+        parameters
+      );
+    } else {
+      //event query
+      result = await queryEvents(
+        smartContractPath,
+        eventIdentifier,
+        filter,
+        timeframe,
+        parameters
+      );
+    }
+
+    res.json(result);
   } catch (err) {
     next(err);
   }
