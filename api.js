@@ -95,20 +95,50 @@ export const queryEvents = async (
     "accessNode.api": process.env.FLOW_ACCESS_NODE_API,
   });
 
+  const { from, to } = await calculateBlockRange();
+
   const fields = smartContractPath.split("/");
   const account = fields[0];
   const contractName = fields[1];
-  const res = await fcl
+  let res = [];
+
+  // FCL allows only query in range of 250 blocks
+  for (let i = from; i < to; i = i + 249) {
+    const upto = Math.min(i + 249, to);
+    const temp = await fcl
+      .send([
+        fcl.getEventsAtBlockHeightRange(
+          `A.${account}.${contractName}.${eventIdentifier}`, // event name
+          i, // block to start looking for events at
+          upto // block to stop looking for events at
+        ),
+      ])
+      .then(fcl.decode);
+
+    console.log(
+      `Fetched events in range:${i} to ${upto}. Found [${temp.length}]`
+    );
+
+    res = res.concat(temp);
+  }
+  return transFromQueryResult(res);
+};
+
+const calculateBlockRange = async (startTime, endTime) => {
+  const latestSealedBlock = await fcl
     .send([
-      fcl.getEventsAtBlockHeightRange(
-        `A.${account}.${contractName}.${eventIdentifier}`, // event name
-        0, // block to start looking for events at
-        100 // block to stop looking for events at
-      ),
+      fcl.getBlock(true), // isSealed = true
     ])
     .then(fcl.decode);
+  // todo: implement binary search to find corract block ranges
+  //  console.log("lllq11wl", latestSealedBlock);
+  let blockHeightEnd = latestSealedBlock["height"];
+  let blockHeightEndTime = latestSealedBlock["timestamp"];
 
-  return transFromQueryResult(res);
+  //   const old = await fcl.block({ height: 46 });
+  //   console.log("old", old);
+
+  return { from: 0, to: blockHeightEnd };
 };
 
 const transFromQueryResult = (rawResult) => {
