@@ -1,0 +1,11 @@
+import ${contractName} from ${account}
+
+transaction {
+    prepare(acct: AuthAccount) {
+    }
+
+    // In execute, we log a string to confirm that the transaction executed successfully.
+    execute {
+        ${contractName}.${functionName}()
+    }
+}
