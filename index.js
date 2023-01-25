@@ -2,7 +2,7 @@ import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-
 dotenv.config();
 import express from "express";
 import bodyParser from "body-parser";
-import { invoke, queryFunctionInvocations, queryEvents } from "./api.js";
+import { invoke, queryFunctionInvocations, queryEvents } from "./apis/api.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -45,7 +45,7 @@ app.post("/query", async (req, res, next) => {
     const eventIdentifier = data["eventIdentifier"];
 
     const filter = data["filter"];
-    const timeframe = data["timeFrame"];
+    const timeframe = data["timeframe"];
     const parameters = data["parameters"];
 
     let result;
