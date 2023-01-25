@@ -1,4 +1,5 @@
 import * as fcl from "@onflow/fcl";
+import { compileExpression } from "filtrex";
 
 export const queryEvents = async (
   smartContractPath,
@@ -11,7 +12,6 @@ export const queryEvents = async (
     "accessNode.api": process.env.FLOW_ACCESS_NODE_API,
   });
 
-  console.log("timeframe", timeframe);
   const { from, to } = await calculateBlockRange(
     timeframe["from"],
     timeframe["to"]
@@ -30,7 +30,26 @@ export const queryEvents = async (
     from,
     to
   );
-  return transFromQueryResult(result);
+
+  const transformedResult = transFromQueryResult(result);
+  const filteredResult = applyFilter(transformedResult, filter);
+  return filteredResult;
+};
+
+const applyFilter = (data, filter) => {
+  const f = compileExpression(filter);
+  const filteredResult = [];
+  for (let i = 0; i < data.length; i++) {
+    let parameters = data[i]["parameters"];
+    for (let j = 0; j < parameters.length; j++) {
+      console.log(parameters[j], f(parameters[j]));
+      if (f(parameters[j])) {
+        filteredResult.push(data[i]);
+      }
+    }
+  }
+
+  return filteredResult;
 };
 
 export const getEventsInBlockRange = async (
