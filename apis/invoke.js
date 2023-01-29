@@ -19,18 +19,22 @@ export const invoke = async (account, contractName, functionName, inputs) => {
   const { p } = parseInputs(inputs);
   const payer = signer;
   const authorizations = [signer];
-  const transactionId = await fcl.mutate({
-    cadence: template,
-    args: (arg, t) => p.map((e) => e(arg, t)),
-    proposer: proposer,
-    payer: payer,
-    authorizations,
-    limit: 999,
-  });
+  try {
+    const transactionId = await fcl.mutate({
+      cadence: template,
+      args: (arg, t) => p.map((e) => e(arg, t)),
+      proposer: proposer,
+      payer: payer,
+      authorizations,
+      limit: 999,
+    });
 
-  const transaction = await fcl.tx(transactionId).onceSealed();
-  console.log(transaction);
-  return transactionId;
+    const transaction = await fcl.tx(transactionId).onceSealed();
+    console.log(transaction);
+    return transactionId;
+  } catch (err) {
+    console.log("err", typeof err);
+  }
 };
 
 const getTransactionString = (account, contractName, functionName, inputs) => {
@@ -63,14 +67,20 @@ const parseInputs = (inputs) => {
 
     const inputTypeInfo = JSON.parse(inputs[i]["type"]);
 
-    if (inputTypeInfo["type"] == "string") {
+    if (
+      inputTypeInfo["type"] == "string" &&
+      inputTypeInfo["pattern"] === undefined
+    ) {
       temp["argType"] = `${inputs[i]["name"]}: String`;
       temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
       p2 = (arg, t) => arg(inputs[i]["value"], t.String);
     } else if (inputTypeInfo["type"] == "boolean") {
       temp["argType"] = `${inputs[i]["name"]}: Bool`;
       temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
-      p2 = (arg, t) => arg(inputs[i]["value"], t.Bool);
+
+      let isTrueSet = inputs[i]["value"] === "true";
+
+      p2 = (arg, t) => arg(isTrueSet, t.Bool);
     } else if (inputTypeInfo["type"] == "integer") {
       const dataType = handleIntegerType(inputTypeInfo);
 
@@ -78,7 +88,10 @@ const parseInputs = (inputs) => {
 
       temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
       p2 = (arg, t) => arg(inputs[i]["value"], typeMapping(dataType, t));
-    } else if (inputTypeInfo["type"] == "address") {
+    } else if (
+      inputTypeInfo["type"] == "string" &&
+      inputTypeInfo["pattern"] === "^0x[a-zA-Z0-9]{16}"
+    ) {
       temp["argType"] = `${inputs[i]["name"]}: Address`;
 
       temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
@@ -145,4 +158,33 @@ const handleIntegerType = (jsonObject) => {
   }
 
   throw new Error(`Unrecognized integer type ${JSON.stringify(jsonObject)}!`);
+};
+
+const mapError = (err) => {
+  if (typeof err === "string") {
+    const errorCode = findErrorCode(err);
+    /*
+    1052: Transaction arguments are invalid.
+    1101: Execution failed.
+    13001: Contract code failed to execute.
+    13002: Contract paniced.
+    14001: Invalid arguments passed to contract.
+    14002: Invalid transaction submitted to the network.
+    14003: Invalid data stored in contract storage.
+    15001: Insufficient funds.
+    15002: Duplicate transaction submitted.
+    16001: Contract call failed.
+    */
+  }
+};
+
+const findErrorCode = (message) => {
+  const errorRegex = /\[Error Code: (\d+)\]/;
+  const errorMatch = errorRegex.exec(errorString);
+
+  if (errorMatch) {
+    return errorMatch;
+  } else {
+    console.log("Error code not found in string.");
+  }
 };
