@@ -78,6 +78,11 @@ const parseInputs = (inputs) => {
 
       temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
       p2 = (arg, t) => arg(inputs[i]["value"], typeMapping(dataType, t));
+    } else if (inputTypeInfo["type"] == "address") {
+      temp["argType"] = `${inputs[i]["name"]}: Address`;
+
+      temp["argsName"] = `${inputs[i]["name"]}: ${inputs[i]["name"]}`;
+      p2 = (arg, t) => arg(inputs[i]["value"], t.Address);
     }
     result.push(temp);
     p.push(p2);
@@ -118,7 +123,7 @@ const handleIntegerType = (jsonObject) => {
     let maximum = new BigNumber(jsonObject.maximum);
 
     if (minimum.eq(BigNumber(0))) {
-      if (maximum > BigNumber(0)) {
+      if (maximum.isGreaterThan(BigNumber(0))) {
         let m = Math.floor(Math.log2(BigNumber(maximum.plus(BigNumber(1)))));
 
         if (m % 8 === 0) {
@@ -127,7 +132,7 @@ const handleIntegerType = (jsonObject) => {
       }
     } else {
       if (
-        minimum < BigNumber(0) &&
+        minimum.isLessThan(BigNumber(0)) &&
         minimum.abs().eq(maximum.plus(BigNumber(1)))
       ) {
         let m = Math.floor(Math.log2(BigNumber(maximum.plus(BigNumber(1)))));
