@@ -40,6 +40,7 @@ app.post("/invoke", async (req, res, next) => {
 app.post("/query", async (req, res, next) => {
   try {
     const data = req.body;
+    console.log("data", data);
     const smartContractPath = data["smartContractPath"];
     const functionIdentifier = data["functionIdentifier"];
     const eventIdentifier = data["eventIdentifier"];

@@ -5,16 +5,17 @@ export const queryEvents = async (
   smartContractPath,
   eventIdentifier,
   filter,
-  timeframe,
+  timeFrame,
   parameters
 ) => {
   fcl.config({
     "accessNode.api": process.env.FLOW_ACCESS_NODE_API,
   });
+  console.log("filter", filter);
 
   const { from, to } = await calculateBlockRange(
-    timeframe["from"],
-    timeframe["to"]
+    timeFrame["from"],
+    timeFrame["to"]
   );
 
   console.log(`Finding events in block range [${from}:${to}]`);
@@ -32,8 +33,11 @@ export const queryEvents = async (
   );
 
   const transformedResult = transFromQueryResult(result);
-  const filteredResult = applyFilter(transformedResult, filter);
-  return filteredResult;
+  if (filter !== undefined && filter !== "" && filter !== null) {
+    const filteredResult = applyFilter(transformedResult, filter);
+    return filteredResult;
+  }
+  return transformedResult;
 };
 
 const applyFilter = (data, filter) => {
@@ -62,12 +66,18 @@ export const getEventsInBlockRange = async (
   let res = [];
 
   // FCL allows only query in range of 250 blocks
-  for (let i = fromBlock; i < toBlock; i = i + 249) {
+  for (let i = fromBlock; i <= toBlock; i = i + 249) {
     const upto = Math.min(i + 249, toBlock);
+    let accountAddress = account;
+    if (accountAddress.startsWith("0x")) {
+      accountAddress = accountAddress.replace("0x", "");
+    }
+
+    console.log("accountAddress", accountAddress);
     const temp = await fcl
       .send([
         fcl.getEventsAtBlockHeightRange(
-          `A.${account}.${contractName}.${eventIdentifier}`, // event name
+          `A.${accountAddress}.${contractName}.${eventIdentifier}`, // event name
           i, // block to start looking for events at
           upto // block to stop looking for events at
         ),
@@ -100,7 +110,11 @@ const calculateBlockRange = async (startTime, endTime) => {
 
 const getBlockTimestamp = async (blockNumber) => {
   const latestSealedBlock = await fcl.block({ height: blockNumber });
-  return Math.ceil(new Date(latestSealedBlock["timestamp"]).getTime() / 1000);
+  const blockTime = Math.ceil(
+    new Date(latestSealedBlock["timestamp"]).getTime()
+  );
+  console.log("blocktime", blockTime);
+  return blockTime;
 };
 
 const transFromQueryResult = (rawResult) => {
