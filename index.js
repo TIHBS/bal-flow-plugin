@@ -70,6 +70,7 @@ app.post("/query", async (req, res, next) => {
       );
     }
 
+    console.log("Query result:", JSON.stringify(result));
     res.json(result);
   } catch (err) {
     next(err);

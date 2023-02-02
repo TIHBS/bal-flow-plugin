@@ -33,7 +33,7 @@ export const invoke = async (account, contractName, functionName, inputs) => {
     console.log(transaction);
     return transactionId;
   } catch (err) {
-    console.log("err", typeof err);
+    console.log("err", err);
   }
 };
 
@@ -149,7 +149,6 @@ const handleIntegerType = (jsonObject) => {
         minimum.abs().eq(maximum.plus(BigNumber(1)))
       ) {
         let m = Math.floor(Math.log2(BigNumber(maximum.plus(BigNumber(1)))));
-        console.log("here", (m + 1) % 8);
         if ((m + 1) % 8 === 0) {
           return `Int${m + 1}`;
         }
@@ -163,6 +162,7 @@ const handleIntegerType = (jsonObject) => {
 const mapError = (err) => {
   if (typeof err === "string") {
     const errorCode = findErrorCode(err);
+
     /*
     1052: Transaction arguments are invalid.
     1101: Execution failed.
