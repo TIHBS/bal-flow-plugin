@@ -31,9 +31,12 @@ export const invoke = async (account, contractName, functionName, inputs) => {
 
     const transaction = await fcl.tx(transactionId).onceSealed();
     console.log(transaction);
-    return transactionId;
+    return { success: true, transactionId: transactionId };
   } catch (err) {
-    console.log("err", err);
+    console.log("error in invoke:\n", err);
+    // Map error to Scip error
+    const { errorCode, errorMessage } = mapFlowErrorToScip(err);
+    return { success: false, errorCode, errorMessage };
   }
 };
 
@@ -159,10 +162,27 @@ const handleIntegerType = (jsonObject) => {
   throw new Error(`Unrecognized integer type ${JSON.stringify(jsonObject)}!`);
 };
 
-const mapError = (err) => {
-  if (typeof err === "string") {
-    const errorCode = findErrorCode(err);
+const SCIPErrors = {
+  InvocationError: -32100,
+  InvalidParameters: -32001,
+  InvalidScipParameters: -32007,
 
+  ExecutionError: -32101,
+  InsufficientFunds: -32102,
+};
+
+export const mapToScipError = (err) => {
+  console.log("Error:", err.message);
+  return {
+    errorCode: SCIPErrors.InvalidScipParameters,
+    errorMessage: err.message,
+  };
+};
+
+const mapFlowErrorToScip = (err) => {
+  if (typeof err === "string") {
+    const errorCode = Number(findErrorCode(err));
+    console.log("Error code: ", errorCode);
     /*
     1052: Transaction arguments are invalid.
     1101: Execution failed.
@@ -175,15 +195,75 @@ const mapError = (err) => {
     15002: Duplicate transaction submitted.
     16001: Contract call failed.
     */
+
+    switch (errorCode) {
+      case 1052:
+        // InvalidParameters: Async
+        // Ideally should not happen
+        return {
+          errorCode: SCIPErrors.InvalidScipParameters,
+          errorMessage: "Transaction arguments are invalid.",
+        };
+      case 1101:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Execution failed.",
+        };
+      case 13001:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Contract code failed to execute.",
+        };
+      case 13002:
+        return {
+          errorCode: SCIPErrors.InvocationError,
+          errorMessage: "Contract paniced.",
+        };
+      case 14001:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Invalid arguments passed to contract.",
+        };
+      case 14002:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Invalid transaction submitted to the network.",
+        };
+      case 14003:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Invalid data stored in contract storage.",
+        };
+      case 15001:
+        return {
+          errorCode: SCIPErrors.InsufficientFunds,
+          errorMessage: "Insufficient funds.",
+        };
+      case 15002:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Duplicate transaction submitted.",
+        };
+      case 16001:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Contract call failed.",
+        };
+      default:
+        return {
+          errorCode: SCIPErrors.ExecutionError,
+          errorMessage: "Unknown error",
+        };
+    }
   }
 };
 
 const findErrorCode = (message) => {
   const errorRegex = /\[Error Code: (\d+)\]/;
-  const errorMatch = errorRegex.exec(errorString);
+  const errorMatch = errorRegex.exec(message);
 
   if (errorMatch) {
-    return errorMatch;
+    return errorMatch[1];
   } else {
     console.log("Error code not found in string.");
   }

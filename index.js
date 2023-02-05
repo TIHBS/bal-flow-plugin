@@ -2,7 +2,12 @@ import * as dotenv from "dotenv"; // see https://github.com/motdotla/dotenv#how-
 dotenv.config();
 import express from "express";
 import bodyParser from "body-parser";
-import { invoke, queryFunctionInvocations, queryEvents } from "./apis/api.js";
+import {
+  invoke,
+  queryFunctionInvocations,
+  queryEvents,
+  mapToScipError,
+} from "./apis/api.js";
 
 const app = express();
 app.use(bodyParser.json());
@@ -25,15 +30,22 @@ app.post("/invoke", async (req, res, next) => {
     const account = fields[0];
     const contractName = fields[1];
 
-    const txID = await invoke(
+    const { success, transactionId, errorCode, errorMessage } = await invoke(
       account,
       contractName,
       functionIdentifier,
       inputs
     );
-    res.json({ transactionHash: txID });
+    if (success) {
+      res.status(200).json({ transactionHash: transactionId });
+    } else {
+      res
+        .status(400)
+        .json({ errorCode: errorCode, errorMessage: errorMessage });
+    }
   } catch (err) {
-    next(err);
+    const { errorCode, errorMessage } = mapToScipError(err);
+    res.status(400).json({ errorCode: errorCode, errorMessage: errorMessage });
   }
 });
 

@@ -1,4 +1,4 @@
-import { invoke } from "./invoke.js";
+import { invoke, mapToScipError } from "./invoke.js";
 import { queryEvents, queryFunctionInvocations } from "./query.js";
 
-export { invoke, queryEvents, queryFunctionInvocations };
+export { invoke, queryEvents, queryFunctionInvocations, mapToScipError };
